@@ -1,11 +1,15 @@
 package br.com.techchallenge.rating.repository;
 
 import br.com.techchallenge.rating.model.persistence.RatingDocument;
+import br.com.techchallenge.rating.model.utils.NotificationStatus;
 import br.com.techchallenge.rating.repository.mongo.MongoClientProvider;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
 import org.bson.Document;
 
+import java.time.Instant;
 import java.util.Date;
 
 public class RatingRepository {
@@ -32,6 +36,16 @@ public class RatingRepository {
                 .append("notificationStatus", doc.getNotificationStatus().name());
 
         collection.insertOne(mongoDoc);
+    }
+
+    public void updateNotificationStatus(String id, NotificationStatus status, Instant updateDate) {
+        collection.updateOne(
+                Filters.eq("_id", id),
+                Updates.combine(
+                        Updates.set("notificationStatus", status.name()),
+                        Updates.set("updatedAt", Date.from(updateDate))
+                )
+        );
     }
 
     private String getEnvOrThrow(String key) {

@@ -28,9 +28,15 @@ public class RatingService {
         boolean critical = isCriticalRating(rating);
         NotificationStatus status = critical ? PENDING : NOT_REQUIRED;
 
-        repository.save(buildDocument(id, rating, description, input.getEmail(), critical, status));
+        RatingDocument document = buildDocument(id, rating, description, input.getEmail(), critical, status);
 
-        return new RatingResult(id, critical);
+        repository.save(document);
+
+        return buildRatingResult(document);
+    }
+
+    public void updateNotificationStatus(String id, NotificationStatus status) {
+        repository.updateNotificationStatus(id, status, Instant.now());
     }
 
     private Integer validateRating(RatingRequest input) {
@@ -65,6 +71,17 @@ public class RatingService {
                 now,
                 now,
                 status
+        );
+    }
+
+    private RatingResult buildRatingResult(RatingDocument document) {
+        return new RatingResult(
+                document.getId(),
+                document.getRating(),
+                document.getDescription(),
+                document.getEmail(),
+                document.getCritical(),
+                document.getCreatedAt().toString()
         );
     }
 }
