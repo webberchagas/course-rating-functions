@@ -31,7 +31,7 @@ public class CreateCourseRatingFunction {
     public HttpResponseMessage run(
             @HttpTrigger(
                     name = "req",
-                    methods = {HttpMethod.GET},
+                    methods = {HttpMethod.POST},
                     route = "ratings",
                     authLevel = AuthorizationLevel.ANONYMOUS
             ) HttpRequestMessage<Optional<String>> request, final ExecutionContext context,
