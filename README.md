@@ -117,7 +117,11 @@ O status da notificação é atualizado conforme a tentativa de envio:
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "java",
     "MONGODB_URI": "...",
-    "SERVICE_BUS_CONNECTION": "Endpoint=sb://..."
+    "MONGODB_DB": "...",
+    "MONGODB_COLLECTION": "...",
+    "QUEUE_CRITICAL_NOTIFICATION": "...",
+    "INTERNAL_SECRET_TOKEN": "...",
+    "SERVICE_BUS_CONNECTION": "..."
   }
 }
 ```
