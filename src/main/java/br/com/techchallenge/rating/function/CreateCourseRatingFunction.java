@@ -33,15 +33,23 @@ public class CreateCourseRatingFunction {
                     name = "req",
                     methods = {HttpMethod.POST},
                     route = "ratings",
-                    authLevel = AuthorizationLevel.ANONYMOUS
+                    authLevel = AuthorizationLevel.FUNCTION
             ) HttpRequestMessage<Optional<String>> request, final ExecutionContext context,
             @ServiceBusQueueOutput(
                     name = "criticalMessage",
-                    queueName = "critical-ratings",
+                    queueName = "%QUEUE_CRITICAL_NOTIFICATION%",
                     connection = "SERVICE_BUS_CONNECTION"
             ) OutputBinding<String> criticalMessage) {
 
         context.getLogger().info("CreateCourseRatingFunction - request received");
+
+        String secretRecebido = request.getHeaders().get("x-internal-secret");
+        String secretEsperado = System.getenv("INTERNAL_SECRET_TOKEN");
+
+        if (secretEsperado == null || !secretEsperado.equals(secretRecebido)) {
+            context.getLogger().warning("Tentativa de acesso não autorizado à Função que registra o rating do curso.");
+            return request.createResponseBuilder(HttpStatus.UNAUTHORIZED).body("Acesso não autorizado").build();
+        }
 
         try {
             String body = validateBody(request);

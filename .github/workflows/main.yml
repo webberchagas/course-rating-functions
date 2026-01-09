@@ -1,0 +1,108 @@
+name: Build and Deploy Azure Function (Java)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # =====================================================
+  # JOB 1 - BUILD
+  # =====================================================
+  build:
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build Azure Function
+        run: mvn clean package -DskipTests  
+
+      - name: Create Deployment Package
+        # Entramos na pasta gerada pelo maven e zipamos o conteúdo interno
+        run: |
+          cd target/azure-functions/*/
+          rm -f local.settings.json
+          zip -r ../../../function-deploy.zip .
+          
+      - name: Upload function package
+        uses: actions/upload-artifact@v4
+        with:
+          name: function-artifact # Nome do artefato no GitHub
+          path: function-deploy.zip
+            
+  # =====================================================
+  # JOB 2 - DEPLOY
+  # =====================================================
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment: dev
+
+    permissions:
+      id-token: write
+      contents: read
+      
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name:  function-artifact
+          
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: 'Configure Environment Variables'
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: ${{ vars.FUNCTION_APP_NAME }}
+          app-settings-json: |
+            [
+              {
+                "name": "MONGODB_URI",
+                "value": "${{ secrets.MONGODB_URI }}",
+                "slotSetting": false
+              },
+              {
+                "name": "MONGODB_DB",
+                "value": "${{ secrets.MONGODB_DB }}",
+                "slotSetting": false
+              },
+              {
+                "name": "MONGODB_COLLECTION",
+                "value": "ratings",
+                "slotSetting": false
+              },
+              {
+                "name": "SERVICE_BUS_CONNECTION",
+                "value": "${{ secrets.SERVICE_BUS_CONNECTION }}",
+                "slotSetting": false
+              },
+              {
+                "name": "QUEUE_CRITICAL_NOTIFICATION",
+                "value": "${{ vars.QUEUE_CRITICAL_NOTIFICATION }}",
+                "slotSetting": false
+              }
+            ]
+
+      - name: 'Run Azure Functions Action'
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ vars.FUNCTION_APP_NAME }}
+          package: './function-deploy.zip'
+          
